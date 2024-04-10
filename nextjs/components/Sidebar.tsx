@@ -95,11 +95,17 @@ const Sidebar = ({ form }: { form: Form }) => {
                 <Select
                   {...field}
                   data={[
+                    
+                    { label: "Gemini-Pro-001", value: "Gemini-1.0-pro-001" },
+                    { label: "Mistral-7b", value: "Mistral-7b" },
+                    { label: "Llama2-7b", value: "Llama2-7b" },
+                    { label: "Mistral-8x7b", value: "Mistral-8x7b" },
+                    { label: "Llama2-30b", value: "Llama2-30b" },
                     { label: "GPT 3.5 Turbo", value: "gpt-3.5-turbo" },
                     { label: "GPT 4", value: "gpt-4" },
                     { label: "Anthropic", value: "anthropic" },
                     { label: "Vicuna 13B", value: "vicuna-13b" },
-                    { label: "MPT-7B", value: "mosaic" },
+                    { label: "MPT-7B", value: "mosaic" }
                   ]}
                 />
               )}
@@ -140,6 +146,10 @@ const Sidebar = ({ form }: { form: Form }) => {
                       label: "OpenAI",
                       value: "OpenAI",
                     },
+                    {
+                      label: "Vertex Gecko - DB",
+                      value: "vertex-gecko",
+                    },
                   ]}
                 />
               )}
@@ -160,6 +170,11 @@ const Sidebar = ({ form }: { form: Form }) => {
                       setValue("splitMethod", "");
                       setValue("embeddingAlgorithm", ""); 
                     }
+                    if (value === "custom-vertex") {
+                      setValue("model", "Gemini-1.0-pro-001");
+                      setValue("splitMethod", "");
+                      setValue("embeddingAlgorithm", ""); 
+                    }
                   }}
                   data={[
                     {
@@ -172,6 +187,7 @@ const Sidebar = ({ form }: { form: Form }) => {
                     },
                     { label: "TF-IDF", value: "TF-IDF" },
                     { label: "Anthropic-100k", value: "Anthropic-100k" },
+                    { label: "Custom VertexAI", value: "custom-vertex" },
                   ]}
                 />
               )}

@@ -36,6 +36,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chains.question_answering import load_qa_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from text_utils import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_DOCS_PROMPT_FAST, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI, QA_CHAIN_PROMPT, QA_CHAIN_PROMPT_LLAMA
+from llm_utils import multiturn_generate_content_geminipro, multiturn_generate_content_dbcustom, DBCustomLLM, DBCustomEmbedding,DBCustomChatModel
 
 def generate_eval(text, chunk, logger):
     """
@@ -110,7 +111,29 @@ def make_llm(model):
                 input={"temperature": 0.75, "max_length": 3000, "top_p":0.25})
     elif model == "mosaic":
         llm = MosaicML(inject_instruction_format=True,model_kwargs={'do_sample': False, 'max_length': 3000})
+
+    elif model == "Gemini-1.0-pro-001":
+        # llm = DBCustomLLM(model='https://europe-west4-aiplatform.googleapis.com/v1/projects/1034748742049/locations/europe-west4/endpoints/3005048841595518976:predict')
+        llm = DBCustomChatModel()
+    elif model == "Mistral-7b":
+        # llm = DBCustomLLM(model='https://europe-west4-aiplatform.googleapis.com/v1/projects/1034748742049/locations/europe-west4/endpoints/3005048841595518976:predict')
+        llm = DBCustomChatModel()
+
+    elif model == "Llama2-7b":
+        # llm = DBCustomLLM(model='https://europe-west4-aiplatform.googleapis.com/v1/projects/1034748742049/locations/europe-west4/endpoints/3005048841595518976:predict')
+        llm = DBCustomChatModel()
+    
+    elif model == "Mistral-8x7b":
+        # llm = DBCustomLLM(model='https://europe-west4-aiplatform.googleapis.com/v1/projects/1034748742049/locations/europe-west4/endpoints/3005048841595518976:predict')
+        llm = DBCustomChatModel()
+    elif model == "Llama2-30b":
+        # llm = DBCustomLLM(model='https://europe-west4-aiplatform.googleapis.com/v1/projects/1034748742049/locations/europe-west4/endpoints/3005048841595518976:predict')
+        llm = DBCustomChatModel()
+    else:
+        # llm = DBCustomLLM(model='https://europe-west4-aiplatform.googleapis.com/v1/projects/1034748742049/locations/europe-west4/endpoints/3005048841595518976:predict')
+        llm = DBCustomChatModel()
     return llm
+
 
 def make_retriever(splits, retriever_type, embeddings, num_neighbors, llm, logger):
     """
@@ -134,6 +157,10 @@ def make_retriever(splits, retriever_type, embeddings, num_neighbors, llm, logge
     # Note: Test
     elif embeddings == "Mosaic":
         embd = MosaicMLInstructorEmbeddings(query_instruction="Represent the query for retrieval: ")
+    elif embeddings == "vertex-gecko":
+        embd = DBCustomEmbedding(model="sentence-transformers/all-MiniLM-L6-v2")
+    else:
+        print("No case satisfies")
 
     # Select retriever
     if retriever_type == "similarity-search":
@@ -198,7 +225,7 @@ def grade_model_answer(predicted_dataset, predictions, grade_answer_prompt, logg
         prompt = GRADE_ANSWER_PROMPT
 
     # Note: GPT-4 grader is advised by OAI 
-    eval_chain = QAEvalChain.from_llm(llm=ChatOpenAI(model_name="gpt-4", temperature=0),
+    eval_chain = QAEvalChain.from_llm(llm=DBCustomChatModel(),
                                       prompt=prompt)
     graded_outputs = eval_chain.evaluate(predicted_dataset,
                                          predictions,
@@ -223,7 +250,7 @@ def grade_model_retrieval(gt_dataset, predictions, grade_docs_prompt, logger):
         prompt = GRADE_DOCS_PROMPT
 
     # Note: GPT-4 grader is advised by OAI
-    eval_chain = QAEvalChain.from_llm(llm=ChatOpenAI(model_name="gpt-4", temperature=0),
+    eval_chain = QAEvalChain.from_llm(llm=DBCustomChatModel(),
                                       prompt=prompt)
     graded_outputs = eval_chain.evaluate(gt_dataset,
                                          predictions,
@@ -263,7 +290,9 @@ def run_eval(chain, retriever, eval_qa_pair, grade_prompt, retriever_type, num_n
         predictions.append(
             {"question": eval_qa_pair["question"], "answer": eval_qa_pair["answer"], "result": answer})
     else :
-        predictions.append(chain(eval_qa_pair))
+        temp_dict = chain(eval_qa_pair)
+        temp_dict["text"] = text
+        predictions.append(temp_dict)
     gt_dataset.append(eval_qa_pair)
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -287,8 +316,10 @@ def run_eval(chain, retriever, eval_qa_pair, grade_prompt, retriever_type, num_n
     # Grade
     graded_answers = grade_model_answer(
         gt_dataset, predictions, grade_prompt, logger)
+    # graded_answers["text"] = text
     graded_retrieval = grade_model_retrieval(
         gt_dataset, retrieved_docs, grade_prompt, logger)
+    # graded_retrieval["text"] = text
     return graded_answers, graded_retrieval, latency, predictions
 
 load_dotenv()
@@ -404,8 +435,8 @@ def run_evaluator(
 
         # Assemble output
         d = pd.DataFrame(predictions)
-        d['answerScore'] = [g['text'] for g in graded_answers]
-        d['retrievalScore'] = [g['text'] for g in graded_retrieval]
+        d['answerScore'] = [g['results'] for g in graded_answers]
+        d['retrievalScore'] = [g['results'] for g in graded_retrieval]
         d['latency'] = latency
 
         # Summary statistics
