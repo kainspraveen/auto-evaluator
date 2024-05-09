@@ -9,13 +9,13 @@ import Playground from "../../components/Playground";
 const PlaygroundPage = () => {
   const form = useForm<FormValues>({
     defaultValues: {
-      evalQuestionsCount: 1,
+      evalQuestionsCount: 5,
       chunkSize: 1000,
       overlap: 100,
       splitMethod: "RecursiveTextSplitter",
-      embeddingAlgorithm: "OpenAI",
-      model: "gpt-3.5-turbo",
-      retriever: "similarity-search",
+      embeddingAlgorithm: "vertex-gecko",
+      model: "Gemini-1.0-pro-001",
+      retriever: "custom-chromaDB",
       gradingPrompt: "Descriptive",
       numNeighbors: 3,
       files: [],

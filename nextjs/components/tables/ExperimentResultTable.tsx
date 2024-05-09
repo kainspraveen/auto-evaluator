@@ -11,7 +11,7 @@ const ExperimentResultsTable = ({
 }) => {
   return (
     <ScrollArea scrollbarSize={0}>
-      <Table withBorder withColumnBorders striped highlightOnHover>
+      <Table withBorder withColumnBorders striped highlightOnHover style = {{borderCollapse: "collapse", borderTop:"1px", borderBottom:"1px"}}>
         <thead>
           <tr>
             <th>Question</th>
@@ -27,8 +27,46 @@ const ExperimentResultsTable = ({
             return (
               <tr key={index}>
                 <td>{result?.question}</td>
-                <td>{result?.answer}</td>
-                <td>{result?.result}</td>
+                {/* <td>{result?.answer}</td> */}
+                <td style={{ whiteSpace: "pre-wrap" }}>
+                  
+                    <Spoiler
+                      maxHeight={150}
+                      hideLabel={
+                        <Text weight="bold" color="blue">
+                          Show less
+                        </Text>
+                      }
+                      showLabel={
+                        <Text weight="bold" color="blue">
+                          Show more
+                        </Text>
+                      }
+                    >
+                      {result?.answer}
+                    </Spoiler>
+                  
+                </td>
+                {/* <td>{result?.result}</td> */}
+                <td style={{ whiteSpace: "pre-wrap" }}>
+                  
+                    <Spoiler
+                      maxHeight={150}
+                      hideLabel={
+                        <Text weight="bold" color="blue">
+                          Show less
+                        </Text>
+                      }
+                      showLabel={
+                        <Text weight="bold" color="blue">
+                          Show more
+                        </Text>
+                      }
+                    >
+                      {result?.result}
+                    </Spoiler>
+                  
+                </td>
                 <td style={{ whiteSpace: "pre-wrap" }}>
                   {isFastGradingPrompt ? (
                     renderPassFail(result.retrievalScore)

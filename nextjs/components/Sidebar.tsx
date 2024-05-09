@@ -34,10 +34,11 @@ const Sidebar = ({ form }: { form: Form }) => {
                     { value: 5, label: "5" },
                     { value: 10, label: "10" },
                     { value: 15, label: "15" },
+                    {value:30, label:"30"},
                   ]}
-                  max={15}
+                  max={30}
                   min={1}
-                  step={1}
+                  step={2}
                 />
               )}
             />
@@ -52,6 +53,9 @@ const Sidebar = ({ form }: { form: Form }) => {
                   {...field}
                   labelTransition="skew-down"
                   marks={[
+                    // { value: 50, label: "50" },
+                    // { value: 100, label: "100" },
+                    // { value: 250, label: "250" },
                     { value: 500, label: "500" },
                     { value: 1000, label: "1000" },
                     { value: 1500, label: "1500" },
@@ -97,15 +101,8 @@ const Sidebar = ({ form }: { form: Form }) => {
                   data={[
                     
                     { label: "Gemini-Pro-001", value: "Gemini-1.0-pro-001" },
-                    { label: "Mistral-7b", value: "Mistral-7b" },
-                    { label: "Llama2-7b", value: "Llama2-7b" },
-                    { label: "Mistral-8x7b", value: "Mistral-8x7b" },
-                    { label: "Llama2-30b", value: "Llama2-30b" },
-                    { label: "GPT 3.5 Turbo", value: "gpt-3.5-turbo" },
-                    { label: "GPT 4", value: "gpt-4" },
-                    { label: "Anthropic", value: "anthropic" },
-                    { label: "Vicuna 13B", value: "vicuna-13b" },
-                    { label: "MPT-7B", value: "mosaic" }
+                    { label: "Text Bison 32k", value: "text-bison-32k" },
+                    
                   ]}
                 />
               )}
@@ -143,10 +140,6 @@ const Sidebar = ({ form }: { form: Form }) => {
                   {...field}
                   data={[
                     {
-                      label: "OpenAI",
-                      value: "OpenAI",
-                    },
-                    {
                       label: "Vertex Gecko - DB",
                       value: "vertex-gecko",
                     },
@@ -165,12 +158,8 @@ const Sidebar = ({ form }: { form: Form }) => {
                   {...field}
                   onChange={(value) => {
                     field.onChange(value);
-                    if (value === "Anthropic-100k") {
-                      setValue("model", "anthropic");
-                      setValue("splitMethod", "");
-                      setValue("embeddingAlgorithm", ""); 
-                    }
-                    if (value === "custom-vertex") {
+                    
+                    if (value === "custom-chromaDB") {
                       setValue("model", "Gemini-1.0-pro-001");
                       setValue("splitMethod", "");
                       setValue("embeddingAlgorithm", ""); 
@@ -186,8 +175,7 @@ const Sidebar = ({ form }: { form: Form }) => {
                       value: "SVM",
                     },
                     { label: "TF-IDF", value: "TF-IDF" },
-                    { label: "Anthropic-100k", value: "Anthropic-100k" },
-                    { label: "Custom VertexAI", value: "custom-vertex" },
+                    { label: "Custom ChromaDB", value: "custom-chromaDB" },
                   ]}
                 />
               )}

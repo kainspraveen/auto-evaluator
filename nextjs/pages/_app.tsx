@@ -43,7 +43,7 @@ export default function App(props: AppProps) {
     fontFamily:
       "Greycliff CF, Inter,-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue,Arial, Noto Sans",
   };
-  const pageName = "Auto-Evaluator";
+  const pageName = "Interactive-Evaluator";
   useEffect(() => {
     if (!IS_DEV) {
       // @ts-expect-error
@@ -53,17 +53,17 @@ export default function App(props: AppProps) {
   return (
     <>
       <Head>
-        <link rel="icon" href="favicon/favicon.ico" />
-        <link rel="icon" sizes="32x32" href="favicon/favicon-32x32.png" />
-        <link rel="icon" sizes="16x16" href="favicon/favicon-16x16.png" />
+        {/* <link rel="icon" href="favicon/favicon.ico" /> */}
+        <link rel="icon" sizes="32x32" href="images/db-logo-black.svg" />
+        <link rel="icon" sizes="16x16" href="images/db-logo-black.svg" />
         <link
           rel="apple-touch-icon"
           sizes="180x180"
-          href="/apple-touch-icon.png"
+          href="images/db-logo-black.svg"
         />
 
-        <link rel="icon" href="favicon/favicon.ico" />
-        <link rel="icon" href="favicon/favicon.ico" />
+        {/* <link rel="icon" href="favicon/favicon.ico" />
+        <link rel="icon" href="favicon/favicon.ico" /> */}
         <meta
           name="description"
           content="Auto-Evaluator helps you evaluate your LLM apps."

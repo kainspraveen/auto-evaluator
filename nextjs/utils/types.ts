@@ -24,6 +24,20 @@ export type Result = {
   latency: number;
 };
 
+export type Result2 = {
+  question: string;
+  answer: string;
+  result: string;
+  faithfulness: { score: number; JUSTIFICATION: string };
+  contextualPrecision: { score: number; JUSTIFICATION: string };
+  contextualRecall: { score: number; JUSTIFICATION: string };
+  contextualRelevancy: { score: number; JUSTIFICATION: string };
+  hallucination: { score: number; JUSTIFICATION: string };
+  bias: { score: number; JUSTIFICATION: string };
+  toxicity: { score: number; JUSTIFICATION: string };
+  latency: number;
+};
+
 export type QAPair = {
   question: string;
   answer: string;

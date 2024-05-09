@@ -21,9 +21,10 @@ import {
   ScrollArea,
   createStyles,
 } from "@mantine/core";
+import ExperimentResultTable2 from "./tables/ExperimentResultTable2";
 import { IconUpload, IconX, IconAlertCircle } from "@tabler/icons-react";
 import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
-import { Experiment, Form, QAPair, Result } from "../utils/types";
+import { Experiment, Form, QAPair, Result, Result2 } from "../utils/types";
 import { notifications } from "@mantine/notifications";
 import { API_URL, IS_DEV } from "../utils/variables";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
@@ -34,8 +35,8 @@ import { isEmpty, isNil, orderBy } from "lodash";
 import TestFileUploadZone from "./TestFileUploadZone";
 import LogRocket from "logrocket";
 
-const MAX_FILE_SIZE_MB = 50;
-
+const MAX_FILE_SIZE_MB = 60;
+const history = null;
 enum DropZoneErrorCode {
   FileTooLarge = "file-too-large",
   FileInvalidType = "file-invalid-type",
@@ -68,6 +69,7 @@ const Playground = ({ form }: { form: Form }) => {
   const theme = useMantineTheme();
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
+  const [results2, setResults2] = useState<Result2[]>([]);
   const [testDataset, setTestDataset] = useState<QAPair[]>([]);
   const [evalQuestionsCount, setEvalQuestionsCount] = useState(-1);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
@@ -80,6 +82,10 @@ const Playground = ({ form }: { form: Form }) => {
   const [testFilesDropzoneDisabled, setTestFilesDropzoneDisabled] =
     useState(true);
   const [fileUploadDisabled, setFileUploadDisabled] = useState(false);
+  const [showTable1, setShowTable1] = useState(true);
+  const [showTable2, setShowTable2] = useState(false);
+  const [enableTable2, setEnableTable2] = useState(false);
+  const [enableTable1, setEnableTable1] = useState(false);
 
   const { classes } = useStyles();
 
@@ -186,6 +192,7 @@ const Playground = ({ form }: { form: Form }) => {
     const controller = new AbortController();
 
     let localResults = [];
+    let localResults2 = [];
     let rowCount = 0;
     try {
       await fetchEventSource(API_URL + "/evaluator-stream", {
@@ -200,8 +207,13 @@ const Playground = ({ form }: { form: Form }) => {
         onmessage(ev) {
           try {
             const row: Result = JSON.parse(ev.data)?.data;
+            setEnableTable1(true);
+            const row2: Result2 = JSON.parse(ev.data)?.data2;
+            setResults2((results2) => [...results2, row2]);
             setResults((results) => [...results, row]);
+            setEnableTable2(true);
             localResults = [...localResults, row];
+            localResults2 = [...localResults2, row2];
             rowCount += 1;
             if (rowCount > testDataset.length) {
               setTestDataset((testDataset) => [
@@ -303,7 +315,7 @@ const Playground = ({ form }: { form: Form }) => {
         title="Instructions"
         style={alertStyle}
       >
-        Upload a file (up to 50 MB) and choose the parameters for your QA
+        Upload a file (up to 60 MB) and choose the parameters for your QA
         chain. This evaluator will generate a test dataset of QA pairs and grade
         the performance of the QA chain. You can experiment with different
         parameters and evaluate the performance.
@@ -476,7 +488,10 @@ const Playground = ({ form }: { form: Form }) => {
               </Spoiler>
             </Card>
           )}
+          
+          
           <Flex direction="row" gap="md">
+            
             <Button
               style={{ marginBottom: "18px" }}
               type="submit"
@@ -488,6 +503,14 @@ const Playground = ({ form }: { form: Form }) => {
           </Flex>
         </>
       )}
+      <Button
+                  style={{ marginBottom: "18px", width: 170 }}
+                  type="submit"
+                  onClick={history}
+                  disabled={loading}
+                >
+                  Experiment History
+          </Button>
       {shouldShowProgress && (
         <Progress
           // value={percentLoaded}
@@ -498,139 +521,8 @@ const Playground = ({ form }: { form: Form }) => {
           color={loading ? "blue" : "green"}
         />
       )}
-      {!!experiments.length && (
-        <Card>
-          <Spoiler
-            maxHeight={0}
-            showLabel="Show summary"
-            hideLabel={null}
-            transitionDuration={500}
-            initialState={true}
-            controlRef={summarySpoilerRef}
-          >
-            <Stack>
-              <Group position="apart">
-                <Title order={3}>Summary</Title>
-                <Group>
-                  <Button
-                    style={{ marginBottom: "18px" }}
-                    type="button"
-                    variant="secondary"
-                    onClick={() => download(experiments, "summary")}
-                  >
-                    Download
-                  </Button>
-                  <Button
-                    style={{ marginBottom: "18px" }}
-                    type="button"
-                    variant="subtle"
-                    onClick={() => {
-                      if (summarySpoilerRef.current)
-                        summarySpoilerRef.current.click();
-                    }}
-                  >
-                    Hide
-                  </Button>
-                </Group>
-              </Group>
-            </Stack>
-            <ScrollArea scrollbarSize={0}>
-              <Table withBorder withColumnBorders striped highlightOnHover>
-                <thead>
-                  <tr>
-                    <th>Experiment #</th>
-                    <th># of Eval Questions</th>
-                    <th>Chunk Size</th>
-                    <th>Overlap</th>
-                    <th>Split Method</th>
-                    <th>Retriever</th>
-                    <th>Embedding Algorithm</th>
-                    <th>Model</th>
-                    <th>Grading Prompt Style</th>
-                    <th># of Chunks Retrieved</th>
-                    <th>Avg Retrieval Relevancy Score</th>
-                    <th>Avg Answer Similarity Score</th>
-                    <th>Avg Latency (s)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {experiments?.map((result: Experiment, index: number) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{result?.evalQuestionsCount}</td>
-                      <td>{result?.chunkSize}</td>
-                      <td>{result?.overlap}</td>
-                      <td>{result?.splitMethod}</td>
-                      <td>{result?.retriever}</td>
-                      <td>{result?.embeddingAlgorithm}</td>
-                      <td>{result?.model}</td>
-                      <td>{result?.gradingPrompt}</td>
-                      <td>{result?.numNeighbors}</td>
-                      <td>{result?.avgRelevancyScore}</td>
-                      <td>{result?.avgAnswerScore}</td>
-                      <td>{result?.avgLatency.toFixed(3)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </ScrollArea>
-            <div style={{ height: 500 }}>
-              <ResponsiveScatterPlot
-                data={chartData}
-                margin={{ top: 60, right: 140, bottom: 70, left: 90 }}
-                xScale={{ type: "linear", min: 0, max: 1 }}
-                xFormat=">-.2f"
-                yScale={{ type: "linear", min: 0, max: "auto" }}
-                yFormat=">-.2f"
-                blendMode="multiply"
-                axisTop={null}
-                axisRight={null}
-                nodeSize={25}
-                axisBottom={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: 0,
-                  legend: "Avg Answer Similarity Score",
-                  legendPosition: "middle",
-                  legendOffset: 46,
-                }}
-                axisLeft={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: 0,
-                  legend: "Avg Latency (s)",
-                  legendPosition: "middle",
-                  legendOffset: -60,
-                }}
-                legends={[
-                  {
-                    anchor: "bottom-right",
-                    direction: "column",
-                    justify: false,
-                    translateX: 130,
-                    translateY: 0,
-                    itemWidth: 100,
-                    itemHeight: 12,
-                    itemsSpacing: 5,
-                    itemDirection: "left-to-right",
-                    symbolSize: 12,
-                    symbolShape: "circle",
-                    effects: [
-                      {
-                        on: "hover",
-                        style: {
-                          itemOpacity: 1,
-                        },
-                      },
-                    ],
-                  },
-                ]}
-              />
-            </div>
-          </Spoiler>
-        </Card>
-      )}
-      {!isEmpty(results) ? (
+
+{!isEmpty(results) ? (
         <Card>
           <Spoiler
             maxHeight={0}
@@ -645,7 +537,33 @@ const Playground = ({ form }: { form: Form }) => {
                 <Title order={3}>Experiment Results</Title>
                 <br />
                 <br />
-                <Group>
+              </Group>
+              <div style={{ display: "flex", flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Group spacing={0}>
+                  <Button
+                    style={{ marginBottom: "18px" }}
+                    type="button"
+                    variant="subtle"
+                    onClick={() => {setShowTable1(true);
+                      setShowTable2(false);
+                    }}
+                  >
+                    Langchain Native
+                  </Button>
+                  {enableTable2 && <Button
+                    style={{ marginBottom: "18px" }}
+                    type="button"
+                    variant="subtle"
+                    onClick={() => {
+                      setShowTable2(true);
+                      setShowTable1(false);
+                      // setButtonColor(true);
+                    }}
+                  >
+                    Deepeval
+                  </Button>}
+                </Group>
+                <Group spacing={0}>
                   <Button
                     style={{ marginBottom: "18px" }}
                     type="button"
@@ -666,10 +584,10 @@ const Playground = ({ form }: { form: Form }) => {
                     Hide
                   </Button>
                 </Group>
-              </Group>
+              </div>
             </Stack>
             <ScrollArea scrollbarSize={0}>
-              <Table withBorder withColumnBorders striped highlightOnHover>
+              {showTable1 && <Table withBorder withColumnBorders striped highlightOnHover>
                 <thead>
                   <tr>
                     <th>Question</th>
@@ -732,11 +650,152 @@ const Playground = ({ form }: { form: Form }) => {
                     </tr>
                   ))}
                 </tbody>
-              </Table>
+              </Table>}
+              {showTable2 && <ExperimentResultTable2
+              results={results2}
+              isFastGradingPrompt={isFastGradingPrompt}
+            />}
             </ScrollArea>
           </Spoiler>
         </Card>
       ) : null}
+
+
+      {!!experiments.length && (
+        <Card>
+          <Spoiler
+            maxHeight={0}
+            showLabel="Show summary"
+            hideLabel={null}
+            transitionDuration={500}
+            initialState={true}
+            controlRef={summarySpoilerRef}
+          >
+            <Stack>
+              <Group position="apart">
+                <Title order={3}>Summary</Title>
+                <Group>
+                  <Button
+                    style={{ marginBottom: "18px" }}
+                    type="button"
+                    variant="secondary"
+                    onClick={() => download(experiments, "summary")}
+                  >
+                    Download
+                  </Button>
+                  <Button
+                    style={{ marginBottom: "18px" }}
+                    type="button"
+                    variant="subtle"
+                    onClick={() => {
+                      if (summarySpoilerRef.current)
+                        summarySpoilerRef.current.click();
+                    }}
+                  >
+                    Hide
+                  </Button>
+                </Group>
+              </Group>
+            </Stack>
+            
+            <ScrollArea scrollbarSize={0}>
+              <Table withBorder withColumnBorders striped highlightOnHover>
+                <thead>
+                  <tr>
+                    <th>Experiment #</th>
+                    <th># of Eval Questions</th>
+                    <th>Chunk Size</th>
+                    <th>Overlap</th>
+                    <th>Split Method</th>
+                    <th>Retriever</th>
+                    <th>Embedding Algorithm</th>
+                    <th>Model</th>
+                    <th>Grading Prompt Style</th>
+                    <th># of Chunks Retrieved</th>
+                    <th>Avg Retrieval Relevancy Score</th>
+                    <th>Avg Answer Similarity Score</th>
+                    <th>Avg Latency (s)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {experiments?.map((result: Experiment, index: number) => (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{result?.evalQuestionsCount}</td>
+                      <td>{result?.chunkSize}</td>
+                      <td>{result?.overlap}</td>
+                      <td>{result?.splitMethod}</td>
+                      <td>{result?.retriever}</td>
+                      <td>{result?.embeddingAlgorithm}</td>
+                      <td>{result?.model}</td>
+                      <td>{result?.gradingPrompt}</td>
+                      <td>{result?.numNeighbors}</td>
+                      <td>{result?.avgRelevancyScore}</td>
+                      <td>{result?.avgAnswerScore}</td>
+                      <td>{result?.avgLatency.toFixed(3)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              
+            </ScrollArea>
+            <div style={{ height: 500 }}>
+              <ResponsiveScatterPlot
+                data={chartData}
+                margin={{ top: 60, right: 140, bottom: 70, left: 90 }}
+                xScale={{ type: "linear", min: 0, max: 1 }}
+                xFormat=">-.2f"
+                yScale={{ type: "linear", min: 0, max: "auto" }}
+                yFormat=">-.2f"
+                blendMode="multiply"
+                axisTop={null}
+                axisRight={null}
+                nodeSize={25}
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: "Avg Answer Similarity Score",
+                  legendPosition: "middle",
+                  legendOffset: 46,
+                }}
+                axisLeft={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: "Avg Latency (s)",
+                  legendPosition: "middle",
+                  legendOffset: -60,
+                }}
+                legends={[
+                  {
+                    anchor: "bottom-right",
+                    direction: "column",
+                    justify: false,
+                    translateX: 130,
+                    translateY: 0,
+                    itemWidth: 100,
+                    itemHeight: 12,
+                    itemsSpacing: 5,
+                    itemDirection: "left-to-right",
+                    symbolSize: 12,
+                    symbolShape: "circle",
+                    effects: [
+                      {
+                        on: "hover",
+                        style: {
+                          itemOpacity: 1,
+                        },
+                      },
+                    ],
+                  },
+                ]}
+              />
+            </div>
+          </Spoiler>
+        </Card>
+      )}
+      
     </Stack>
   );
 };
