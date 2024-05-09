@@ -23,13 +23,15 @@ const HeaderEvaluator = ({ activeTab }: { activeTab: MenuItem }) => {
             <Group>
               {/* TODO(Kains) Ad proper image for displaying DB logo */}
               <Image src={dbLogo} alt='' width={30} height={30}/>
-              <Text size={mobileWidth === true ? "14px" : "28px"}>🦜🔗</Text>
+              {/* <Text size={mobileWidth === true ? "14px" : "28px"} color="#000">|🦜🔗</Text> */}
+              <Text size={mobileWidth === true ? "14px" : "28px"} color="#000">| 🐞💫🦋</Text>
               <Text
                 variant="gradient"
-                gradient={{ from: "blue", to: "#bf2015" }}
+                gradient={{ from: "black", to: "#bf2015" }}
                 size={mobileWidth === true ? "14px" : "28px"}
+                weight="8em"
               >
-                DB-Evaluator
+                Interactive Evaluator
               </Text>
             </Group>
           </Link>

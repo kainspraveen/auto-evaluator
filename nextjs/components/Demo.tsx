@@ -20,7 +20,7 @@ import {
   Card,
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
-import { Experiment, Form, QAPair, Result } from "../utils/types";
+import { Experiment, Form, QAPair, Result, Result2 } from "../utils/types";
 import { notifications } from "@mantine/notifications";
 import { API_URL, IS_DEV } from "../utils/variables";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
@@ -33,6 +33,7 @@ import SummaryChart from "./SummaryChart";
 import ExperimentSummaryTable from "./ExperimentSummaryTable";
 import FilesTable from "./tables/FilesTable";
 import ExperimentResultTable from "./tables/ExperimentResultTable";
+import ExperimentResultTable2 from "./tables/ExperimentResultTable2";
 import sampleText from "../public/testData/karpathy-pod.json";
 import LogRocket from "logrocket";
 
@@ -41,6 +42,7 @@ const Demo = ({ form }: { form: Form }) => {
   const watchFiles = watch("files");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
+  const [results2, setResults2] = useState<Result2[]>([]);
   const [testDataset, setTestDataset] = useState<QAPair[]>([]);
   const [evalQuestionsCount, setEvalQuestionsCount] = useState(5);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
@@ -50,6 +52,9 @@ const Demo = ({ form }: { form: Form }) => {
   const summarySpoilerRef = useRef<HTMLButtonElement>(null);
   const testDatasetSpoilerRef = useRef<HTMLButtonElement>(null);
   const [isFirstRun, setIsFirstRun] = useState(true);
+  const [showTable1, setShowTable1] = useState(true);
+  const [showTable2, setShowTable2] = useState(false);
+  const [enableTable2, setEnableTable2] = useState(false);
 
   const alertStyle = { backgroundColor: `rgba(193,194,197,0.38)` };
   useEffect(() => {
@@ -134,6 +139,7 @@ const Demo = ({ form }: { form: Form }) => {
     formData.append("retriever_type", data.retriever);
     formData.append("embeddings", data.embeddingAlgorithm);
     formData.append("model_version", data.model);
+    // setTable1Name(data.gradingPrompt);
     formData.append("grade_prompt", data.gradingPrompt);
     formData.append("num_neighbors", data.numNeighbors.toString());
     formData.append("test_dataset", JSON.stringify(testDataset));
@@ -157,6 +163,7 @@ const Demo = ({ form }: { form: Form }) => {
     const controller = new AbortController();
 
     let localResults = [];
+    let localResults2 = [];
     let rowCount = 0;
 
     try {
@@ -171,8 +178,12 @@ const Demo = ({ form }: { form: Form }) => {
         onmessage(ev) {
           try {
             const row: Result = JSON.parse(ev.data)?.data;
+            const row2: Result2 = JSON.parse(ev.data)?.data2;
+            setEnableTable2(true);
             setResults((results) => [...results, row]);
+            setResults2((results2) => [...results2, row2]);
             localResults = [...localResults, row];
+            localResults2 = [...localResults2, row2];
             rowCount += 1;
             if (rowCount > testDataset.length) {
               setTestDataset((testDataset) => [
@@ -241,6 +252,8 @@ const Demo = ({ form }: { form: Form }) => {
     );
   });
 
+  const history = null;
+
   const download = useCallback(
     (data: any[], filename: string) => {
       const parser = new Parser();
@@ -264,10 +277,9 @@ const Demo = ({ form }: { form: Form }) => {
     <Stack>
       <Title order={3}>Get Started</Title>
       <Alert style={alertStyle}>
-        Welcome to the auto-evaluator! This is an app to evaluate the
+        Welcome to the Interactive-evaluator! This is an app to evaluate the
         performance of question-answering LLM chains. This demo has pre-loaded
-        two things: (1) a document (the Lex Fridman podcast with Andrej
-        Karpathy) and (2) a "test set" of question-answer pairs for this
+        two things: (1) a document (a podcast on latest AI technologies) and (2) a "test set" of question-answer pairs for this
         episode. The aim is to evaluate the performance of various
         question-answering LLM chain configurations against the test set. You
         can build any QA chain using the components and score its performance.
@@ -275,7 +287,8 @@ const Demo = ({ form }: { form: Form }) => {
         <br />
         <Text>
           Choose the question-answering chain configuration (left) and launch an
-          experiment using the button below. For more detail on each setting,
+          experiment using the button below. 
+          {/* For more detail on each setting,
           see full the documentation{" "}
           <a
             style={{ color: "blue" }}
@@ -283,7 +296,7 @@ const Demo = ({ form }: { form: Form }) => {
           >
             here
           </a>
-          .
+          . */}
         </Text>
       </Alert>
       {!!watchFiles?.length && (
@@ -360,7 +373,7 @@ const Demo = ({ form }: { form: Form }) => {
           )}
           <Flex direction="row" gap="md">
             {!loading || isFirstRun ? (
-              <Stack>
+              <Stack style={{display: "flex", flexDirection: 'row', justifyContent: 'space-between'}}>
                 <Button
                   style={{ marginBottom: "18px", width: 170 }}
                   type="submit"
@@ -368,6 +381,14 @@ const Demo = ({ form }: { form: Form }) => {
                   disabled={loading}
                 >
                   {runExperimentButtonLabel}
+                </Button>
+                <Button
+                  style={{ marginBottom: "18px", width: 170 }}
+                  type="submit"
+                  onClick={history}
+                  disabled={loading}
+                >
+                  Experiment History
                 </Button>
               </Stack>
             ) : null}
@@ -406,7 +427,7 @@ const Demo = ({ form }: { form: Form }) => {
                   prompts for both can be seen{" "}
                   <a
                     style={{ color: "blue" }}
-                    href="https://github.com/dankolesnikov/auto-evaluator-app/blob/main/api/text_utils.py"
+                    href="https://stash.gto.intranet.db.com:8082/projects/INSIGHTSASSET/repos/python_mlops/browse/auto-evaluator/api/text_utils.py?at=refs%2Fheads%2Fdb-ie"
                   >
                     here
                   </a>{" "}
@@ -414,7 +435,32 @@ const Demo = ({ form }: { form: Form }) => {
                   prompt style". The "Fast" prompt will only have the LLM grader
                   output the score. The other prompts will also produce an
                   explanation.
-                </Alert>
+                </Alert>  
+              </Group>
+              <div style={{ display: "flex", flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Group spacing={0}>
+                  <Button
+                    style={{ marginBottom: "18px" }}
+                    type="button"
+                    variant="subtle"
+                    onClick={() => {setShowTable1(true);
+                      setShowTable2(false)
+                    }}
+                  >
+                    Langchain Native
+                  </Button>
+                  {enableTable2 && <Button
+                    style={{ marginBottom: "18px" }}
+                    type="button"
+                    variant="subtle"
+                    onClick={() => {
+                      setShowTable2(true);
+                      setShowTable1(false)
+                    }}
+                  >
+                    Deepeval
+                  </Button>}
+                </Group>
                 <Group spacing={0}>
                   <Button
                     style={{ marginBottom: "18px" }}
@@ -436,12 +482,16 @@ const Demo = ({ form }: { form: Form }) => {
                     Hide
                   </Button>
                 </Group>
-              </Group>
+              </div>
             </Stack>
-            <ExperimentResultTable
+            {showTable1 && <ExperimentResultTable
               results={results}
               isFastGradingPrompt={isFastGradingPrompt}
-            />
+            />}
+            {showTable2 && <ExperimentResultTable2
+              results={results2}
+              isFastGradingPrompt={isFastGradingPrompt}
+            />}
           </Spoiler>
         </Card>
       ) : null}

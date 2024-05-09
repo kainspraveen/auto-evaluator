@@ -61,14 +61,14 @@ export function UserCardImage({
             {job}
           </Text>
         </div>
-        <Group position="center">
+        {/* <Group position="center">
           <Link href={`https://twitter.com/${twitterHandle}`} target="_blank">
             <Image src={twitterBlackIcon} alt="github" width={30} height={30} />
           </Link>
           <Link href={`https://github.com/${githubHandle}`} target="_blank">
             <Image src={githubIcon} alt="github" width={30} height={30} />
           </Link>
-        </Group>
+        </Group> */}
       </Stack>
     </Card>
   );
