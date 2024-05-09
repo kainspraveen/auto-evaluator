@@ -9,7 +9,8 @@ from langchain_core.language_models import BaseChatModel, SimpleChatModel
 from langchain_core.messages import AIMessageChunk, BaseMessage, HumanMessage, AIMessage
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import run_in_executor
-
+from langchain_core.embeddings import Embeddings
+from langchain_core.pydantic_v1 import BaseModel, Extra, Field, root_validator
 from vertexai.preview.generative_models import GenerativeModel, Part
 import vertexai.preview.generative_models as generative_models
 from deepeval.models.base_model import DeepEvalBaseLLM, DeepEvalBaseModel
@@ -214,8 +215,75 @@ class DBCustomLLM(DeepEvalBaseLLM):
         return self.generate(prompt, testing=True)
 
     def get_model_name(self):
-        return "GEminiPro-1.0.0 - DB Custom"
+        return "GeminiPro-1.0.0 - DB Custom"
 
+class DBCustomEmbeddingsLC(BaseModel, Embeddings):
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embed search docs."""
+        # embeddings = self.generate_embeddings_gecko(texts)
+        embeddings = self.generate_embeddings_hf(texts=texts)
+        return  embeddings
+
+
+    def embed_query(self, text: str) -> List[float]:
+        """Embed a query using the Llama model.
+
+        Args:
+            text: The text to embed.
+
+        Returns:
+            Embeddings for the text.
+        """
+        # embeddings = self.generate_embeddings_gecko([text])
+        embeddings = self.generate_embeddings_hf(texts=[text])
+        return embeddings[0]
+
+    def generate_embeddings_gecko(self, texts):
+        from vertexai.preview.language_models import TextEmbeddingModel
+        from google.cloud import aiplatform
+        aiplatform.init(project = "db-dev-z23y-ai-survey-lab", location = "europe-west1")
+        print("Inside embeddings api call func")
+        model = TextEmbeddingModel.from_pretrained("textembedding-gecko-multilingual")
+        print("model init done... and len of texts", len(texts))
+        if(len(texts)<=250):
+            print("inside if")
+            embeddings = model.get_embeddings(texts)
+            print("got respoonse from model")
+            embed = []
+            for embedding in embeddings:
+                vector = embedding.values
+                embed.append(vector)
+            print("returned from if")
+            return embed
+        else:
+            print("inside else")
+            embed = []
+            chunks = [texts[i:i+250] for i in range(0, len(texts), 250)]
+            for chunk in chunks:
+                embeddings = model.get_embeddings(chunk)
+                print("got response from model")
+                for embedding in embeddings:
+                    vector = embedding.values
+                    embed.append(vector)
+            print("returned from else")
+            return embed
+
+    def generate_embeddings_hf(self, texts):
+        # hf_token = "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"
+        # api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_id}"
+        # headers = {"Authorization": f"Bearer {hf_token}"}
+        # response = requests.post(api_url, headers=headers, json={"inputs": texts, "options":{"wait_for_model":True}})
+        # print(response.text)
+        # # print(response.json())
+        # return response.json()
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        embeddings = model.encode(texts)
+        # print(embeddings)
+        # print(len(texts), texts)
+        return embeddings.tolist()
 
 class DBCustomEmbedding(DeepEvalBaseLLM):
     def __init__(

@@ -142,6 +142,19 @@ template = """Use the following pieces of context to answer the question at the 
 Question: {question}
 Helpful Answer:"""
 
+# template = """You are an assistant providing summary answers about the Environmental sustainability performace of the company whose information you will get in the context.
+ 
+# Be concise and truthful. Think step by step.
+# Answer the question with 'Yes' or 'No' followed by the reason. If you cannot say neither, give proper justification.
+ 
+# Question:
+# {question}
+ 
+# Here is some context that might be helpful:
+# {context}
+ 
+# Answer:"""
+
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template,)
 
 template = """

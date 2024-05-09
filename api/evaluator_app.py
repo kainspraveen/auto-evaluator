@@ -16,27 +16,33 @@ import faiss
 import pandas as pd
 from typing import Dict, List
 from json import JSONDecodeError
-from langchain.llms import MosaicML
-from langchain.llms import Anthropic
-from langchain.llms import Replicate
+
 from langchain.schema import Document
 from langchain.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatOpenAI
 from langchain.chains import QAGenerationChain
 from langchain.retrievers import SVMRetriever
 from langchain.evaluation.qa import QAEvalChain
 from langchain.retrievers import TFIDFRetriever
 from sse_starlette.sse import EventSourceResponse
 from fastapi.middleware.cors import CORSMiddleware
-from langchain.embeddings import LlamaCppEmbeddings
-from langchain.embeddings import MosaicMLInstructorEmbeddings
 from fastapi import FastAPI, File, UploadFile, Form
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.chains.question_answering import load_qa_chain
+# from langchain.chains.question_answering import load_qa_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from deepeval_utils import run_deep_eval
+# from ragas.integrations.langchain import EvaluatorChain
+# from ragas.langchain.evalchain import RagasEvaluatorChain
+from ragas.metrics import (
+    answer_correctness,
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    context_relevancy,
+    faithfulness,
+)
 from text_utils import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_DOCS_PROMPT_FAST, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI, QA_CHAIN_PROMPT, QA_CHAIN_PROMPT_LLAMA
-from llm_utils import multiturn_generate_content_geminipro, multiturn_generate_content_dbcustom, DBCustomLLM, DBCustomEmbedding,DBCustomChatModel
+from llm_utils import multiturn_generate_content_geminipro, multiturn_generate_content_dbcustom, DBCustomLLM, DBCustomEmbedding,DBCustomChatModel,DBCustomEmbeddingsLC
 
 def generate_eval(text, chunk, logger):
     """
@@ -53,7 +59,7 @@ def generate_eval(text, chunk, logger):
     starting_index = random.randint(0, num_of_chars-chunk)
     sub_sequence = text[starting_index:starting_index+chunk]
     # Set up QAGenerationChain chain using GPT 3.5 as default
-    chain = QAGenerationChain.from_llm(ChatOpenAI(temperature=0))
+    chain = QAGenerationChain.from_llm(DBCustomChatModel())
     eval_set = []
     # Catch any QA generation errors and re-try until QA pair is generated
     awaiting_answer = True
@@ -100,19 +106,9 @@ def make_llm(model):
     @return: LLM
     """
 
-    if model in ("gpt-3.5-turbo", "gpt-4"):
-        llm = ChatOpenAI(model_name=model, temperature=0)
-    elif model == "anthropic":
-        llm = Anthropic(temperature=0)
-    elif model == "Anthropic-100k":
-        llm = Anthropic(model="claude-v1-100k",temperature=0)
-    elif model == "vicuna-13b":
-        llm = Replicate(model="replicate/vicuna-13b:e6d469c2b11008bb0e446c3e9629232f9674581224536851272c54871f84076e",
-                input={"temperature": 0.75, "max_length": 3000, "top_p":0.25})
-    elif model == "mosaic":
-        llm = MosaicML(inject_instruction_format=True,model_kwargs={'do_sample': False, 'max_length': 3000})
+    #Note: WIP -> additional DB custom models
 
-    elif model == "Gemini-1.0-pro-001":
+    if model == "Gemini-1.0-pro-001":
         # llm = DBCustomLLM(model='https://europe-west4-aiplatform.googleapis.com/v1/projects/1034748742049/locations/europe-west4/endpoints/3005048841595518976:predict')
         llm = DBCustomChatModel()
     elif model == "Mistral-7b":
@@ -149,16 +145,10 @@ def make_retriever(splits, retriever_type, embeddings, num_neighbors, llm, logge
 
     logger.info("`Making retriever ...`")
     # Set embeddings
-    if embeddings == "OpenAI":
-        embd = OpenAIEmbeddings()
-    # Note: Still WIP (can't be selected by user yet)
-    elif embeddings == "LlamaCppEmbeddings":
-        embd = LlamaCppEmbeddings(model="replicate/vicuna-13b:e6d469c2b11008bb0e446c3e9629232f9674581224536851272c54871f84076e")
+    
     # Note: Test
-    elif embeddings == "Mosaic":
-        embd = MosaicMLInstructorEmbeddings(query_instruction="Represent the query for retrieval: ")
-    elif embeddings == "vertex-gecko":
-        embd = DBCustomEmbedding(model="sentence-transformers/all-MiniLM-L6-v2")
+    if embeddings == "vertex-gecko":
+        embd = DBCustomEmbeddingsLC()
     else:
         print("No case satisfies")
 
@@ -166,12 +156,13 @@ def make_retriever(splits, retriever_type, embeddings, num_neighbors, llm, logge
     if retriever_type == "similarity-search":
         vectorstore = FAISS.from_texts(splits, embd)
         retriever = vectorstore.as_retriever(k=num_neighbors)
+    elif retriever_type == "custom-chromaDB":
+        vectorstore = Chroma(collection_name = "langchain_store", embedding_function = embd).from_texts(texts = splits, embedding = embd)
+        retriever  = vectorstore.as_retriever(k = num_neighbors)
     elif retriever_type == "SVM":
         retriever = SVMRetriever.from_texts(splits, embd)
     elif retriever_type == "TF-IDF":
         retriever = TFIDFRetriever.from_texts(splits)
-    elif retriever_type == "Anthropic-100k":
-         retriever = llm
     return retriever
 
 def make_chain(llm, retriever, retriever_type, model):
@@ -184,23 +175,16 @@ def make_chain(llm, retriever, retriever_type, model):
     @return: QA chain
     """
 
-    # Select prompt 
-    if model == "vicuna-13b":
-        # Note: Better answer quality using default prompt 
-        # chain_type_kwargs = {"prompt": QA_CHAIN_PROMPT_LLAMA}
-        chain_type_kwargs = {"prompt": QA_CHAIN_PROMPT}
-    else: 
-        chain_type_kwargs = {"prompt": QA_CHAIN_PROMPT}
+    chain_type_kwargs = {"prompt": QA_CHAIN_PROMPT}
 
     # Select model 
-    if retriever_type == "Anthropic-100k":
-        qa_chain = load_qa_chain(llm,chain_type="stuff",prompt=QA_CHAIN_PROMPT)
-    else:
-        qa_chain = RetrievalQA.from_chain_type(llm,
-                                               chain_type="stuff",
-                                               retriever=retriever,
-                                               chain_type_kwargs=chain_type_kwargs,
-                                               input_key="question")
+    
+    chain_type_kwargs = {"prompt": QA_CHAIN_PROMPT}
+    qa_chain = RetrievalQA.from_chain_type(llm,
+                                            chain_type="stuff",
+                                            retriever=retriever,
+                                            chain_type_kwargs=chain_type_kwargs,
+                                            input_key="question")
     return qa_chain
 
 
@@ -259,6 +243,25 @@ def grade_model_retrieval(gt_dataset, predictions, grade_docs_prompt, logger):
     return graded_outputs
 
 
+# def run_eval_geval(chain, retriever, eval_qa_pair, retriever_type, num_neighbours, text, logger):
+#     logger.info("`Running G-Eval Evaluator....`")
+#     predictions = []
+#     retrieved_docs = []
+#     gt_dataset = []
+#     latency = []
+#     start_time = time.time()
+
+# def run_eval_ragas(chain, retriever, eval_qa_pair, retriever_type, num_neighbours, text, logger):
+#     logger.info("`Running RAGAS evaluation...`")
+#     predictions = []
+#     retrieved_docs = []
+#     gt_dataset = []
+#     latency = []
+#     start_time = time.time()
+
+
+
+
 def run_eval(chain, retriever, eval_qa_pair, grade_prompt, retriever_type, num_neighbors, text, logger):
     """
     Runs evaluation on a model's performance on a given evaluation dataset.
@@ -300,13 +303,11 @@ def run_eval(chain, retriever, eval_qa_pair, grade_prompt, retriever_type, num_n
 
     # Extract text from retrieved docs
     retrieved_doc_text = ""
-    if retriever_type == "Anthropic-100k":
-        retrieved_doc_text = "Doc %s: " % str(eval_qa_pair["answer"])
-    else:
-        docs = retriever.get_relevant_documents(eval_qa_pair["question"])
-        for i, doc in enumerate(docs):
-            retrieved_doc_text += "Doc %s: " % str(i+1) + \
-                doc.page_content + " "
+    
+    docs = retriever.get_relevant_documents(eval_qa_pair["question"])
+    for i, doc in enumerate(docs):
+        retrieved_doc_text += "Doc %s: " % str(i+1) + \
+            doc.page_content + " "
 
     # Log
     retrieved = {"question": eval_qa_pair["question"],
@@ -335,10 +336,6 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "localhost:3000",
-    "https://evaluator-ui.vercel.app/"
-    "https://evaluator-ui.vercel.app"
-    "evaluator-ui.vercel.app/"
-    "evaluator-ui.vercel.app"
 ]
 
 app.add_middleware(
@@ -398,12 +395,10 @@ def run_evaluator(
                 "Unsupported file type for file: {}".format(file.filename))
     text = " ".join(texts)
 
-    if retriever_type == "Anthropic-100k":
-        splits = ""
-        model_version = "Anthropic-100k"
-    else:
-        logger.info("Splitting texts")
-        splits = split_texts(text, chunk_chars, overlap, split_method, logger)
+    
+    
+    logger.info("Splitting texts")
+    splits = split_texts(text, chunk_chars, overlap, split_method, logger)
 
     logger.info("Make LLM")
     llm = make_llm(model_version)
@@ -432,9 +427,13 @@ def run_evaluator(
         # Run eval
         graded_answers, graded_retrieval, latency, predictions = run_eval(
             qa_chain, retriever, eval_pair, grade_prompt, retriever_type, num_neighbors, text, logger)
+        
+        # Run DeepEval
+        predictions_d, latency_d, faithfulness, contextual_precision, contextual_recall, contextual_relevancy, hallucination, bias, toxicity, ragas = run_deep_eval(qa_chain, retriever, eval_pair, grade_prompt, retriever_type, num_neighbors, text, logger)
 
         # Assemble output
         d = pd.DataFrame(predictions)
+        
         d['answerScore'] = [g['results'] for g in graded_answers]
         d['retrievalScore'] = [g['results'] for g in graded_retrieval]
         d['latency'] = latency
@@ -444,14 +443,35 @@ def run_evaluator(
                              'justification': text} for text in d['answerScore']]
         d['retrievalScore'] = [{'score': 1 if "Incorrect" not in text else 0,
                                 'justification': text} for text in d['retrievalScore']]
+        
+
+        # Deepeval Dataframe
+        de = pd.DataFrame(predictions_d)
+        print(de.head())
+        print(de.index, de.shape,faithfulness)
+        de["faithfulness"] = faithfulness
+        de["contextualPrecision"] = contextual_precision
+        de["contextualRecall"] = contextual_recall
+        de["contextualRelevancy"] = contextual_relevancy
+        de["hallucination"] = hallucination
+        de["bias"] = bias
+        de["toxicity"] = toxicity
+        de["ragas"] = ragas
+        de["latency"] = latency_d
+
 
         # Convert dataframe to dict
         d_dict = d.to_dict('records')
+        de_dict = de.to_dict('records')
+
         if len(d_dict) == 1:
-            yield json.dumps({"data":  d_dict[0]})
+            yield json.dumps({"data":  d_dict[0],"data2": de_dict[0]})
+            # if(len(de_dict) == 1):
+            #     yield json.dumps({"data2": de_dict[0]})
         else:
             logger.warn(
                 "A QA pair was not evaluated correctly. Skipping this pair.")
+            
 
 
 @app.post("/evaluator-stream")
@@ -462,8 +482,8 @@ async def create_response(
     overlap: int = Form(100),
     split_method: str = Form("RecursiveTextSplitter"),
     retriever_type: str = Form("similarity-search"),
-    embeddings: str = Form("OpenAI"),
-    model_version: str = Form("gpt-3.5-turbo"),
+    embeddings: str = Form("vertex-gecko"),
+    model_version: str = Form("Gemini-1.0-pro-001"),
     grade_prompt: str = Form("Fast"),
     num_neighbors: int = Form(3),
     test_dataset: str = Form("[]"),
