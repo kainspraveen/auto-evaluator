@@ -4,9 +4,9 @@ import { useForm } from "react-hook-form";
 import HeaderEvaluator, { MenuItem } from "../components/HeaderEvaluator";
 import Sidebar from "../components/Sidebar";
 import { FormValues } from "../utils/types";
-import Demo from "../components/Demo";
+import Playground from "../components/Playground";
 
-const DemoPage = () => {
+const PlaygroundPage = () => {
   const form = useForm<FormValues>({
     defaultValues: {
       evalQuestionsCount: 5,
@@ -31,7 +31,7 @@ const DemoPage = () => {
           <br />
         </Navbar>
       }
-      header={<HeaderEvaluator activeTab={MenuItem.Demo} />}
+      header={<HeaderEvaluator activeTab={MenuItem.Playground} />}
       styles={(theme) => ({
         main: {
           backgroundColor:
@@ -41,8 +41,8 @@ const DemoPage = () => {
         },
       })}
     >
-      <Demo form={form} />
+      <Playground form={form} />
     </AppShell>
   );
 };
-export default DemoPage;
+export default PlaygroundPage;

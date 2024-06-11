@@ -6,7 +6,6 @@ import { useMediaQuery } from "@mantine/hooks";
 import dbLogo from '../images/db-logo-black.svg';
 import Image from 'next/image';
 export enum MenuItem {
-  Demo = "Demo",
   Playground = "Playground",
   About = "About",
 }
@@ -22,7 +21,7 @@ const HeaderEvaluator = ({ activeTab }: { activeTab: MenuItem }) => {
           <Link href="/" style={{ textDecoration: "none" }}>
             <Group>
               {/* TODO(Kains) Ad proper image for displaying DB logo */}
-              <Image src={dbLogo} alt='' width={30} height={30}/>
+              {/* <Image src={dbLogo} alt='' width={30} height={30}/> */}
               {/* <Text size={mobileWidth === true ? "14px" : "28px"} color="#000">|🦜🔗</Text> */}
               <Text size={mobileWidth === true ? "14px" : "28px"} color="#000">| 🐞💫🦋</Text>
               <Text
@@ -36,15 +35,7 @@ const HeaderEvaluator = ({ activeTab }: { activeTab: MenuItem }) => {
             </Group>
           </Link>
           <Group>
-            <Link
-              href="/"
-              style={{
-                textDecoration: "none",
-                borderBottom: activeTab === MenuItem.Demo ? borderBottom : null,
-              }}
-            >
-              <Text c="black">Demo</Text>
-            </Link>
+            
             <Link
               href="/playground"
               style={{
@@ -55,16 +46,8 @@ const HeaderEvaluator = ({ activeTab }: { activeTab: MenuItem }) => {
             >
               <Text c="black">Playground</Text>
             </Link>
-            {/* <Link
-              style={{ textDecoration: "none" }}
-              href={
-                "https://github.com/dankolesnikov/evaluator-app/blob/main/README.md"
-              }
-              target="_blank"
-            >
-              <Text c="black">Docs</Text>
-            </Link> */}
-            {/* <Link
+            
+            <Link
               style={{
                 textDecoration: "none",
                 borderBottom:
@@ -73,13 +56,8 @@ const HeaderEvaluator = ({ activeTab }: { activeTab: MenuItem }) => {
               href="/about"
             >
               <Text c="black">About</Text>
-            </Link> */}
-            {/* <Link
-              href={"https://github.com/dankolesnikov/evaluator-app"}
-              target="_blank"
-            >
-              <Image src={githubIcon} alt="github" width={30} height={30} />
-            </Link> */}
+            </Link>
+            
           </Group>
         </Group>
       </Stack>
