@@ -30,7 +30,7 @@ const HeaderEvaluator = ({ activeTab }: { activeTab: MenuItem }) => {
                 size={mobileWidth === true ? "14px" : "28px"}
                 weight="8em"
               >
-                Interactive Evaluator
+                Interactive RAG Evaluator
               </Text>
             </Group>
           </Link>
