@@ -449,6 +449,23 @@ def run_evaluator(
                 "A QA pair was not evaluated correctly. Skipping this pair.")
             
 
+@app.post("/chat")
+async def ai_chat(
+    message: str,
+    files: Optional[List[UploadFile]]
+):
+    # pass
+    if files is None:
+        llm = make_llm("Gemini-1.0-pro-001")
+        response = llm(message)
+        return response
+    else:
+        llm = make_llm("Gemini-1.0-pro-001")
+        response = llm(message)
+        return response
+
+
+
 
 @app.post("/evaluator-stream")
 async def create_response(
