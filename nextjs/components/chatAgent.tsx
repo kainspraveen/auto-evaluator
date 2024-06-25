@@ -170,7 +170,7 @@ const MessageParser = ({ children, actions }) => {
 const ChatAgent = () => {
     return (
       <Chatbot
-        style={{
+{/*         style={{
           marginTop: "100px",
           width: 800,
           overflowX: "hidden",
@@ -178,7 +178,7 @@ const ChatAgent = () => {
           paddingRight: "15px",
           paddingLeft: "5px",
           paddingTop: "15px",
-        }}
+        }} */}
         config={config}
         messageParser={MessageParser}
         
