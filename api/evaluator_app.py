@@ -24,7 +24,7 @@ from langchain.evaluation.qa import QAEvalChain
 from langchain.retrievers import TFIDFRetriever
 from sse_starlette.sse import EventSourceResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, Body
 # from langchain.chains.question_answering import load_qa_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from langchain_community.vectorstores import Chroma
@@ -451,8 +451,7 @@ def run_evaluator(
 
 @app.post("/chat")
 async def ai_chat(
-    message: str,
-    files: Optional[List[UploadFile]]
+    message: str =  Body(...)
 ):
     # pass
     if files is None:
