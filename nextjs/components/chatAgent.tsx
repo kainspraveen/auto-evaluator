@@ -28,6 +28,8 @@
 import { notifications } from "@mantine/notifications";
 import { API_URL, IS_DEV } from "../utils/variables";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import ActionProvider from "./ActionProvider";
+import MessageParser from "./MessageParser";
 // import { Parser } from "@json2csv/plainjs";
 // import { IconFile } from "@tabler/icons-react";
 // import { ResponsiveScatterPlot } from "@nivo/scatterplot";
@@ -57,34 +59,34 @@ const config = {
 
 
 
-const ActionProvider = ({ createChatBotMessage, setState, children }) => {
-  return (
-    <div>
-      {React.Children.map(children, (child) => {
-        return React.cloneElement(child, {
-          actions: {},
-        });
-      })}
-    </div>
-  );
-};
+// const ActionProvider = ({ createChatBotMessage, setState, children }) => {
+//   return (
+//     <div>
+//       {React.Children.map(children, (child) => {
+//         return React.cloneElement(child, {
+//           actions: {},
+//         });
+//       })}
+//     </div>
+//   );
+// };
 
-const MessageParser = ({ children, actions }) => {
-  const parse = (message) => {
-    console.log(message);
-  };
+// const MessageParser = ({ children, actions }) => {
+//   const parse = (message) => {
+//     console.log(message);
+//   };
 
-  return (
-    <div>
-      {React.Children.map(children, (child) => {
-        return React.cloneElement(child, {
-          parse: parse,
-          actions: {},
-        });
-      })}
-    </div>
-  );
-};
+//   return (
+//     <div>
+//       {React.Children.map(children, (child) => {
+//         return React.cloneElement(child, {
+//           parse: parse,
+//           actions: {},
+//         });
+//       })}
+//     </div>
+//   );
+// };
 
 // --------------------------------------------------------------------------------------------------------------------------------------------
 // Logic for connecting to the Backend
