@@ -454,6 +454,7 @@ async def ai_chat(
     message: str =  Body(...)
 ):
     # pass
+    files = None
     if files is None:
         llm = make_llm("Gemini-1.0-pro-001")
         response = llm(message)
